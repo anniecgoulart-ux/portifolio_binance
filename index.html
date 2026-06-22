@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Portfolio Binance</title>
+<link rel="icon" type="image/png" href="favicon.png"/>
+<link rel="apple-touch-icon" href="favicon.png"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
+<style>
+:root {
+  --bg:      #0d1117;
+  --card:    #161b22;
+  --border:  #30363d;
+  --text:    #e6edf3;
+  --muted:   #8b949e;
+  --green:   #3fb950;
+  --red:     #f85149;
+  --yellow:  #d29922;
+  --blue:    #388bfd;
+  --accent:  #f0b90b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+
+/* ---- LOGIN ---- */
+#login-screen {
+  display: flex; align-items: center; justify-content: center; min-height: 100vh;
+  background: radial-gradient(ellipse at top, #1a2332 0%, #0d1117 60%);
+}
+.login-box {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 40px 36px; width: 340px;
+}
+.login-box h1 { font-size: 22px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+.login-box p { color: var(--muted); margin-bottom: 28px; font-size: 13px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+.field input {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 10px 12px; font-size: 14px; outline: none;
+}
+.field input:focus { border-color: var(--blue); }
+.btn-primary {
+  width: 100%; background: var(--accent); color: #000; font-weight: 700;
+  border: none; border-radius: 8px; padding: 12px; font-size: 15px; cursor: pointer;
+  margin-top: 8px;
+}
+.btn-primary:hover { opacity: .9; }
+.btn-sm {
+  background: transparent; border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 6px 14px; font-size: 13px; cursor: pointer;
+}
+.btn-sm:hover { border-color: var(--muted); }
+select.btn-sm { background: var(--card); }
+select.btn-sm option { background: var(--card); color: var(--text); }
+.toggle-switch {
+  position: relative; display: inline-flex; align-items: center;
+  width: 62px; height: 26px; border-radius: 13px; border: none;
+  background: #3fb950; cursor: pointer; padding: 0;
+  transition: background .2s; flex-shrink: 0; vertical-align: middle;
+}
+.toggle-switch .ts-knob {
+  position: absolute; right: 3px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35);
+  transition: right .2s, left .2s;
+}
+.toggle-switch .ts-label {
+  position: absolute; left: 9px;
+  color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .4px;
+  pointer-events: none; user-select: none;
+}
+.toggle-switch.ts-off { background: #f85149; }
+.toggle-switch.ts-off .ts-knob { right: auto; left: 3px; }
+.toggle-switch.ts-off .ts-label { left: auto; right: 8px; }
+.err { color: var(--red); font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
+
+/* ---- APP ---- */
+#app { display: none; }
+header {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 56px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.logo-img { height: 30px; width: auto; }
+.logo-stack { display: flex; flex-direction: column; line-height: 1.05; }
+.lw-top { color: var(--accent); font-size: 16px; }
+.lw-bot { color: var(--text); font-size: 10.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; opacity: .8; }
+.h-left { flex: 1; display: flex; align-items: center; min-width: 0; }
+.header-right { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.price-live { font-size: 13px; }
+.price-live .val { font-weight: 700; font-size: 16px; }
+.dot-live { width: 8px; height: 8px; background: var(--green); border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.chart-live { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.chart-live .cl-sym { font-weight: 600; color: var(--text); }
+.chart-live .val { font-weight: 700; font-size: 14px; color: var(--text); }
+.chart-live .cl-chg { font-size: 11px; font-weight: 600; }
+.btn-interval { padding: 4px 8px; font-size: 11px; font-weight: 600; letter-spacing: .3px; }
+
+/* ---- TABS ---- */
+.tabs { display: flex; gap: 2px; padding: 16px 20px 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tab {
+  padding: 8px 18px; cursor: pointer; border-bottom: 2px solid transparent;
+  color: var(--muted); font-size: 14px; font-weight: 500; transition: .15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.tab:hover { color: var(--text); }
+
+/* ---- CONTENT ---- */
+.page { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
+.page.active { display: block; }
+
+/* ---- CARDS ---- */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px 20px;
+}
+.card-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 8px; }
+.card-value { font-size: 22px; font-weight: 700; }
+.card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.green { color: var(--green); }
+.red { color: var(--red); }
+.yellow { color: var(--yellow); }
+
+/* ---- CHART ---- */
+.chart-wrap {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px; margin-bottom: 24px;
+}
+.chart-wrap h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.chart-box { position: relative; height: 420px; }
+.chart-wrap canvas { max-height: none; }
+
+/* ---- TABLE ---- */
+.table-wrap {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden; margin-bottom: 24px;
+}
+.table-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.table-header h3 { font-size: 14px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; }
+th { padding: 10px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); border-bottom: 1px solid var(--border); }
+td { padding: 10px 16px; border-bottom: 1px solid #1c2128; font-size: 13px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #1c2128; }
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.badge-buy  { background: rgba(63,185,80,.15); color: var(--green); }
+.badge-sell { background: rgba(248,81,73,.15); color: var(--red); }
+
+/* ---- IMPORT ---- */
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: 10px; padding: 40px;
+  text-align: center; cursor: pointer; transition: .2s; margin-bottom: 20px;
+}
+.drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: rgba(240,185,11,.05); }
+.drop-zone p { color: var(--muted); margin-top: 8px; font-size: 13px; }
+.import-log {
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;
+  white-space: pre-wrap; color: var(--muted);
+}
+
+/* ---- ASSETS GRID ---- */
+.assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.asset-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px;
+}
+.asset-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.asset-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+.asset-row .label { color: var(--muted); }
+
+/* ---- MOBILE ---- */
+@media (max-width: 600px) {
+  .page { padding: 12px; }
+  .cards { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card-value { font-size: 18px; }
+  th, td { padding: 8px 10px; font-size: 12px; }
+  .hide-mobile { display: none; }
+  header { padding: 0 12px; }
+  .header-right { gap: 8px; }
+  .price-live { font-size: 11px; }
+  .price-live .val { font-size: 13px; }
+  .tabs { padding: 12px 12px 0; }
+  .tab { padding: 8px 12px; font-size: 13px; }
+  .chart-wrap { padding: 10px; }
+  .chart-box { height: 62vh; }
+  .page { padding: 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== LOGIN ========== -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>₿ <span>Portfolio</span></h1>
+    <p>Acompanhe seus trades da Binance</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="seu@email.com" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" onclick="login()">Entrar</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ========== APP ========== -->
+<div id="app">
+  <header>
+    <div class="h-left">
+      <div class="logo">
+        <img src="logo-btc.png" class="logo-img" alt="₿"/>
+        <span class="logo-stack"><span class="lw-top">Portfolio</span><span class="lw-bot">Binance</span></span>
+      </div>
+    </div>
+    <div class="price-live">
+      <span class="dot-live"></span>
+      BTC <span class="val" id="btc-price-header">—</span>
+      <span id="btc-change" style="font-size:12px;margin-left:4px"></span>
+    </div>
+    <div class="header-right">
+      <button class="btn-sm" id="btn-sync" onclick="syncTrades()" title="Sincronizar">⟳</button>
+      <button class="btn-sm" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('dashboard',this)">Dashboard</div>
+    <div class="tab" onclick="showTab('ativos',this)">Ativos</div>
+    <div class="tab" onclick="showTab('trades',this)">Trades</div>
+    <div class="tab" onclick="showTab('ordens',this)">Ordens</div>
+    <div class="tab" onclick="showTab('importar',this)" title="Importar CSV" style="margin-left:auto">📥</div>
+  </div>
+
+  <!-- ======= DASHBOARD ======= -->
+  <div id="page-dashboard" class="page active">
+
+    <!-- GRÁFICO (em cima) -->
+    <div class="chart-wrap">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <select id="coin-select" class="btn-sm" onchange="setChartCoin(this.value)" style="width:80px;padding:4px 6px;font-size:11px"></select>
+        <button class="btn-sm btn-interval" id="btn-all"  onclick="setChartInterval('all',  this)" style="border-color:var(--accent)">ALL</button>
+        <button class="btn-sm btn-interval" id="btn-5y"   onclick="setChartInterval('5y',   this)">5A</button>
+        <button class="btn-sm btn-interval" id="btn-1y"   onclick="setChartInterval('1y',   this)">1A</button>
+        <button class="btn-sm btn-interval" id="btn-1m"   onclick="setChartInterval('1m',   this)">1M</button>
+        <button class="btn-sm btn-interval" id="btn-1w"   onclick="setChartInterval('1w',   this)">1S</button>
+        <button class="btn-sm btn-interval" id="btn-24h"  onclick="setChartInterval('24h',  this)">24H</button>
+        <button class="btn-sm" id="btn-measure" onclick="toggleMeasureMode()" title="Medir (Shift+Arrastar no desktop)">📏</button>
+        <button class="toggle-switch" id="btn-trades" onclick="toggleTrades()" title="Mostrar/ocultar trades">
+          <span class="ts-knob"></span><span class="ts-label">ON</span>
+        </button>
+        <span class="chart-live" id="chart-live" style="margin-left:auto">
+          <span class="dot-live"></span>
+          <span class="cl-sym" id="chart-live-sym">BTC</span>
+          <span class="val" id="chart-live-val">—</span>
+          <span class="cl-chg" id="chart-live-chg"></span>
+        </span>
+      </div>
+      <div class="chart-box"><canvas id="chart-price"></canvas></div>
+      <p style="color:var(--muted);font-size:11px;margin-top:8px">🖱 Scroll para zoom · Arraste para mover · 🟢 <b style="color:#3fb950">B</b> = Compra · 🔴 <b style="color:#f85149">S</b> = Venda · <b>📏</b> Medir: clique na régua e depois em dois pontos</p>
+      <div id="chart-orders" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center"></div>
+    </div>
+
+    <!-- DADOS (embaixo) -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Resumo da carteira</h3>
+      <button class="btn-sm" id="btn-toggle-cards" onclick="toggleCards()">👁 Mostrar dados</button>
+    </div>
+    <div class="cards" id="summary-cards" style="display:none">
+      <div class="card"><div class="card-label">BTC em carteira</div><div class="card-value" id="s-btc">—</div><div class="card-sub" id="s-btc-sub">quantidade total</div></div>
+      <div class="card"><div class="card-label">Custo médio BTC</div><div class="card-value" id="s-avg">—</div><div class="card-sub">em USDT</div></div>
+      <div class="card"><div class="card-label">Valor atual</div><div class="card-value" id="s-value">—</div><div class="card-sub" id="s-value-sub">preço × quantidade</div></div>
+      <div class="card"><div class="card-label">P&L não realizado</div><div class="card-value" id="s-unreal">—</div><div class="card-sub" id="s-unreal-pct"></div></div>
+      <div class="card"><div class="card-label">P&L realizado</div><div class="card-value" id="s-real">—</div><div class="card-sub">total de vendas − custo</div></div>
+      <div class="card"><div class="card-label">Taxas pagas</div><div class="card-value" id="s-fees">—</div><div class="card-sub">estimativa em USDT</div></div>
+    </div>
+
+  </div>
+
+  <!-- ======= ATIVOS ======= -->
+  <div id="page-ativos" class="page">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn-sm" id="btn-hide-small" onclick="toggleSmall()">👁 Mostrar moedas &lt; $1</button>
+    </div>
+    <div id="assets-grid" class="assets-grid"></div>
+  </div>
+
+  <!-- ======= TRADES ======= -->
+  <div id="page-trades" class="page">
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>Histórico de Trades</h3>
+        <select id="filter-pair" onchange="filterTrades()" class="btn-sm">
+          <option value="">Todos os pares</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Par</th>
+              <th>Lado</th>
+              <th>Preço</th>
+              <th>Quantidade</th>
+              <th>Total</th>
+              <th class="hide-mobile">Taxa</th>
+            </tr>
+          </thead>
+          <tbody id="trades-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= ORDENS ABERTAS ======= -->
+  <div id="page-ordens" class="page">
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>Ordens abertas na Binance</h3>
+        <button class="btn-sm" onclick="syncTrades()">⟳ Atualizar</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Par</th>
+              <th>Lado</th>
+              <th>Tipo</th>
+              <th>Preço</th>
+              <th class="hide-mobile">Gatilho</th>
+              <th>Quantidade</th>
+              <th class="hide-mobile">Executado</th>
+            </tr>
+          </thead>
+          <tbody id="orders-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= IMPORTAR ======= -->
+  <div id="page-importar" class="page">
+    <div class="chart-wrap">
+      <h3>Importar CSV da Binance</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+        Vá em Binance → Carteira → Histórico de Trades → Exportar → CSV.<br/>
+        Arraste o arquivo abaixo ou clique para selecionar. Duplicatas são ignoradas automaticamente.
+      </p>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>Arraste o arquivo CSV aqui ou clique para selecionar</p>
+        <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importCSV(this.files[0])"/>
+      </div>
+      <div class="import-log" id="import-log">Aguardando arquivo...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO — substitua com suas credenciais do Supabase
+// ============================================================
+const SUPABASE_URL = 'xxxxxxxxxxxx'
+const SUPABASE_ANON_KEY = 'xxxxxxxxxxx'
+// ============================================================
+
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+let currentUser = null
+let allTrades = []
+let priceChart = null
+let tradeChart = null
+let priceHistory = []
+let currentBtcPrice = null
+let ws = null
+let realBalances = {}   // saldo real puxado da Binance
+let openOrders = []     // ordens abertas puxadas da Binance
+
+// ---- AUTH ----
+async function login() {
+  const email = document.getElementById('email').value
+  const pass  = document.getElementById('password').value
+  const errEl = document.getElementById('login-err')
+  errEl.textContent = 'Entrando...'
+  try {
+    const { data, error } = await db.auth.signInWithPassword({ email, password: pass })
+    if (error) { errEl.textContent = '❌ ' + error.message; return }
+    if (!data?.user) { errEl.textContent = '❌ Usuário não encontrado'; return }
+    errEl.textContent = ''
+    await startApp()
+  } catch(e) {
+    errEl.textContent = '❌ ' + (e.message || JSON.stringify(e))
+  }
+}
+
+async function syncTrades() {
+  const btn = document.getElementById('btn-sync')
+  btn.textContent = '⏳'
+  btn.disabled = true
+  try {
+    const { data: { session } } = await db.auth.getSession()
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-trades`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }
+    })
+    const json = await res.json()
+    if (json.ok) {
+      if (json.balances) realBalances = json.balances
+      openOrders = json.openOrders || []
+      btn.textContent = '✓'
+      btn.title = `✓ ${json.totalInserted} trades sincronizados`
+      await loadTrades()
+    } else {
+      btn.textContent = '⚠'
+    }
+  } catch(e) {
+    btn.textContent = '⚠'
+  }
+  setTimeout(() => { btn.textContent = '⟳'; btn.title = 'Sincronizar'; btn.disabled = false }, 3000)
+}
+
+// Sincroniza saldo + trades em segundo plano (sem travar a UI)
+async function autoSync() {
+  try {
+    const { data: { session } } = await db.auth.getSession()
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-trades`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }
+    })
+    const json = await res.json()
+    if (json.ok) {
+      if (json.balances) realBalances = json.balances
+      openOrders = json.openOrders || []
+      await loadTrades()
+    }
+  } catch(e) { console.error('autoSync', e) }
+}
+
+async function logout() {
+  await db.auth.signOut()
+  location.reload()
+}
+
+let appStarted = false
+
+db.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') { appStarted = false; return }
+  if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && !appStarted) {
+    currentUser = session.user
+    // IMPORTANTE: defer fora do callback — chamar await db.from() aqui causa deadlock no Supabase
+    setTimeout(() => startApp(), 0)
+  }
+})
+
+async function startApp() {
+  if (appStarted) return
+  appStarted = true
+  console.log('[startApp] currentUser:', currentUser?.email)
+  if (!currentUser) { appStarted = false; return }
+  document.getElementById('login-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'block'
+  try { await fetchUsdtBrl(); console.log('[startApp] BRL rate:', usdtBrlRate) } catch(e) { console.error('fetchUsdtBrl', e) }
+  try { await loadTrades(); console.log('[startApp] trades:', allTrades.length) } catch(e) { console.error('loadTrades', e) }
+  // Carrega histórico de preço BTC/USD e re-renderiza com valores corretos
+  try { await loadBtcUsdHistory(); renderAll() } catch(e) { console.error('loadBtcUsdHistory', e) }
+  try { startBinanceWS() } catch(e) { console.error('ws', e) }
+  try { buildCoinSelector(); initCharts() } catch(e) { console.error('initCharts', e) }
+  // Sincroniza saldo real da Binance em segundo plano
+  autoSync()
+}
+
+// Sessão inicial — fallback caso onAuthStateChange não dispare
+db.auth.getSession().then(({ data: { session } }) => {
+  if (session?.user && !appStarted) { currentUser = session.user; setTimeout(() => startApp(), 0) }
+})
+
+// ---- TABS ----
+function showTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  el.classList.add('active')
+  document.getElementById('page-' + name).classList.add('active')
+}
+
+// ---- LOAD TRADES ----
+async function loadTrades() {
+  const { data, error } = await db
+    .from('binance_trades')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('traded_at', { ascending: false })
+  if (error) { console.error(error); return }
+  const raw = data || []
+  // Deduplica trades que vieram de origens diferentes (importação por CSV +
+  // sincronização pela API). O mesmo negócio pode estar gravado duas vezes:
+  // uma linha do CSV (sem binance_trade_id) e outra da API (com binance_trade_id).
+  // Por isso a chave usa a "identidade econômica" do trade — instante (em epoch,
+  // para igualar formatos de data diferentes) + par + lado + preço + quantidade —
+  // que é idêntica nas duas origens, em vez do binance_trade_id que só a API tem.
+  const seen = new Set()
+  allTrades = raw.filter(t => {
+    const ts = new Date(t.traded_at).getTime()
+    const key = `${ts}|${t.pair}|${t.side}|${t.price}|${t.quantity}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  renderAll()
+}
+
+// ---- RENDER ALL ----
+function renderAll() {
+  renderSummary()
+  renderTradesTable(allTrades)
+  renderAssets()
+  renderTradeChart()
+  populatePairFilter()
+  renderOpenOrders()
+  renderChartOrders()
+}
+
+// Extrai a moeda base de um símbolo (ex: 'BTCUSDT' -> 'BTC')
+function symbolBase(symbol) {
+  const quotes = ['USDT','BUSD','BRL','BTC','BNB','ETH','USDC']
+  for (const q of quotes) {
+    if (symbol.endsWith(q) && symbol.length > q.length) return symbol.slice(0, -q.length)
+  }
+  return symbol
+}
+
+// Resumo das ordens abertas da moeda exibida no gráfico (abaixo do gráfico)
+function renderChartOrders() {
+  const el = document.getElementById('chart-orders')
+  if (!el) return
+  const coin = currentChartCoin
+  const mine = openOrders.filter(o => symbolBase(o.symbol) === coin)
+  if (!mine.length) {
+    el.innerHTML = `<span style="color:var(--muted);font-size:12px">Sem ordens abertas em ${coin}</span>`
+    return
+  }
+  mine.sort((a,b) => (a.price||0) - (b.price||0))
+  const chips = mine.map(o => {
+    const isBuy = (o.side || '').toUpperCase() === 'BUY'
+    const cor = isBuy ? 'var(--green)' : 'var(--red)'
+    const dot = isBuy ? '🟢' : '🔴'
+    const preco = (o.stop_price && o.stop_price > 0) ? o.stop_price : o.price
+    return `<span style="border:1px solid ${cor};color:${cor};border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap">${dot} $${fmtK(preco)}</span>`
+  }).join('')
+  el.innerHTML = `<span style="color:var(--muted);font-size:12px">Ordens em ${coin}:</span>` + chips
+}
+
+// ---- ORDENS ABERTAS ----
+function renderOpenOrders() {
+  const tbody = document.getElementById('orders-body')
+  if (!tbody) return
+  tbody.innerHTML = ''
+  for (const o of openOrders) {
+    const tr = document.createElement('tr')
+    const dt = new Date(o.time)
+    const hasStop = o.stop_price && o.stop_price > 0
+    tr.innerHTML = `
+      <td>${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${o.symbol}</td>
+      <td><span class="badge badge-${(o.side||'').toLowerCase()}">${o.side}</span></td>
+      <td>${o.type}</td>
+      <td>${o.price ? fmtK(o.price) : '—'}</td>
+      <td class="hide-mobile">${hasStop ? fmtK(o.stop_price) : '—'}</td>
+      <td>${fmt(o.orig_qty,8)}</td>
+      <td class="hide-mobile">${fmt(o.executed_qty,8)}</td>
+    `
+    tbody.appendChild(tr)
+  }
+  if (!openOrders.length) {
+    const tr = document.createElement('tr')
+    tr.innerHTML = '<td colspan="8" style="text-align:center;color:var(--muted);padding:30px">Nenhuma ordem aberta no momento.</td>'
+    tbody.appendChild(tr)
+  }
+}
+
+// ---- CUSTO MÉDIO PONDERADO UNIFICADO ----
+// Pool único de BTC: BTCUSDT + BTCBRL + BTCBUSD juntos
+// BRL convertido para USDT pela taxa atual (aproximado para histórico)
+let usdtBrlRate = 5.7
+
+async function fetchUsdtBrl() {
+  try {
+    const ctrl = new AbortController()
+    setTimeout(() => ctrl.abort(), 3000)
+    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTBRL', { signal: ctrl.signal })
+    const d = await r.json()
+    usdtBrlRate = parseFloat(d.price) || 5.7
+  } catch(e) { usdtBrlRate = 5.7 }
+}
+
+// ---- HISTÓRICO DIÁRIO DO PREÇO BTC/USD ----
+// Usado para converter compras antigas em BRL pelo preço do dólar/BTC DA ÉPOCA
+let btcDaily = []   // [{ t: timestamp, c: close }] ordenado por data
+
+async function loadBtcUsdHistory() {
+  const btcAll = allTrades.filter(t => t.base_asset === 'BTC')
+  if (!btcAll.length) return
+  const oldest = Math.min(...btcAll.map(t => new Date(t.traded_at).getTime()))
+  let cursor = oldest - 2 * 86400000
+  btcDaily = []
+  while (cursor < Date.now()) {
+    try {
+      const url = `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=${cursor}&limit=1000`
+      const res = await fetch(url)
+      const batch = await res.json()
+      if (!Array.isArray(batch) || batch.length === 0) break
+      for (const k of batch) btcDaily.push({ t: k[0], c: parseFloat(k[4]) })
+      cursor = batch[batch.length - 1][0] + 86400000
+      if (batch.length < 1000) break
+    } catch(e) { break }
+  }
+  console.log('[btcDaily] dias carregados:', btcDaily.length)
+}
+
+// Preço BTC/USD no dia de um timestamp (último dia <= ts)
+function btcUsdAt(ts) {
+  if (!btcDaily.length) return 0
+  let best = btcDaily[0].c
+  for (const d of btcDaily) {
+    if (d.t <= ts) best = d.c
+    else break
+  }
+  return best
+}
+
+// Preço unitário do trade em USD (BRL convertido pelo BTC/USD da época)
+function tradeUsdPrice(t) {
+  if (t.quote_asset !== 'BRL') return parseFloat(t.price)
+  const h = btcUsdAt(new Date(t.traded_at).getTime())
+  return h > 0 ? h : parseFloat(t.price) / usdtBrlRate
+}
+
+// Valor total do trade em USD
+function tradeUsdTotal(t) {
+  if (t.quote_asset !== 'BRL') return parseFloat(t.total)
+  return parseFloat(t.quantity) * tradeUsdPrice(t)
+}
+
+function calcBTC() {
+  // MÉTODO: média de todas as compras
+  //   custo médio = (soma do valor de TODAS as compras de BTC) / (qtd total comprada)
+  //   vendas NÃO afetam o custo médio
+  // Considera compras diretas de BTC (BTCUSDT, BTCBRL, BTCBUSD). BRL convertido em USDT.
+  const btcTrades = allTrades
+    .filter(t => t.base_asset === 'BTC')
+    .sort((a,b) => new Date(a.traded_at) - new Date(b.traded_at))
+
+  let boughtQty    = 0   // qtd total comprada
+  let boughtCost   = 0   // valor total gasto comprando (USDT)
+  let soldQty      = 0   // qtd total vendida
+  let soldReceived = 0   // valor total recebido vendendo (USDT)
+  let feesUsdt     = 0
+
+  for (const t of btcTrades) {
+    const qty   = parseFloat(t.quantity)
+    const fee   = parseFloat(t.fee_amount)
+    const totalUsdt = tradeUsdTotal(t)   // BRL convertido pelo BTC/USD da época
+
+    // Taxas (BRL convertido pela taxa implícita da época)
+    if (t.fee_asset === 'USDT' || t.fee_asset === 'BUSD') feesUsdt += fee
+    else if (t.fee_asset === 'BRL') {
+      const histUsdBrl = parseFloat(t.price) / (btcUsdAt(new Date(t.traded_at).getTime()) || (parseFloat(t.price)/usdtBrlRate))
+      feesUsdt += histUsdBrl > 0 ? fee / histUsdBrl : fee / usdtBrlRate
+    }
+    else if (t.fee_asset === 'BTC') feesUsdt += fee * (currentBtcPrice || 0)
+    else if (t.fee_asset === 'BNB') feesUsdt += fee * 650
+
+    if (t.side === 'BUY') {
+      boughtQty  += qty
+      boughtCost += totalUsdt
+    } else {
+      soldQty      += qty
+      soldReceived += totalUsdt
+    }
+  }
+
+  // Custo médio = média de TODAS as compras
+  const avgCost = boughtQty > 0 ? boughtCost / boughtQty : 0
+  // P&L realizado = recebido nas vendas − (custo médio × qtd vendida)
+  const realized = soldReceived - avgCost * soldQty
+
+  return { avgCost, boughtQty, boughtCost, soldQty, soldReceived, realized, feesUsdt }
+}
+
+function renderSummary() {
+  const btc    = calcBTC()
+  const price  = currentBtcPrice || 0
+
+  // Saldo: usa o real da Binance se disponível, senão (comprado − vendido)
+  const realBtc = realBalances['BTC']
+  const qty = (realBtc !== undefined && realBtc > 0) ? realBtc : Math.max(0, btc.boughtQty - btc.soldQty)
+
+  const curVal = qty * price
+  const costOfHeld = btc.avgCost * qty           // custo médio × o que tenho hoje
+  const unreal = curVal - costOfHeld
+  const unrealPct = costOfHeld > 0 ? (unreal / costOfHeld * 100) : 0
+
+  set('s-btc', fmt(qty, 8) + ' BTC')
+  set('s-btc-sub', (realBtc !== undefined) ? '✓ saldo real Binance' : 'comprado − vendido')
+  set('s-avg', btc.avgCost > 0 ? '$ ' + fmtK(btc.avgCost) : '—')
+  set('s-value', price > 0 ? '$ ' + fmtK(curVal) : '—')
+  set('s-value-sub', 'BTC × $' + fmtK(price))
+
+  const unrealEl = document.getElementById('s-unreal')
+  unrealEl.textContent = price > 0 ? (unreal >= 0 ? '+ $' : '- $') + fmtK(Math.abs(unreal)) : '—'
+  unrealEl.className = 'card-value ' + (unreal >= 0 ? 'green' : 'red')
+  set('s-unreal-pct', unrealPct.toFixed(2) + '% · BRL convertido pela taxa atual')
+
+  const realEl = document.getElementById('s-real')
+  realEl.textContent = (btc.realized >= 0 ? '+ $' : '- $') + fmtK(Math.abs(btc.realized))
+  realEl.className = 'card-value ' + (btc.realized >= 0 ? 'green' : 'red')
+
+  set('s-fees', '≈ $ ' + fmtK(btc.feesUsdt))
+}
+
+// ---- ASSETS ----
+// Preços aproximados em USDT para filtrar ativos < $1
+const PRICE_CACHE = { BTC: 0, USDT: 1, BUSD: 1, BRL: 0, BNB: 650 }
+
+async function fetchPrices(assets) {
+  for (const a of assets) {
+    if (PRICE_CACHE[a] !== undefined) continue
+    try {
+      const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${a}USDT`)
+      const d = await r.json()
+      PRICE_CACHE[a] = parseFloat(d.price) || 0
+    } catch(e) { PRICE_CACHE[a] = 0 }
+  }
+}
+
+let hideSmall = true   // ocultar moedas < $1 (padrão: ocultar)
+
+function toggleSmall() {
+  hideSmall = !hideSmall
+  renderAssets()
+}
+
+// Mostrar/ocultar os cards de resumo do dashboard
+function toggleCards() {
+  const cards = document.getElementById('summary-cards')
+  const btn = document.getElementById('btn-toggle-cards')
+  const hidden = cards.style.display === 'none'
+  cards.style.display = hidden ? 'grid' : 'none'
+  btn.textContent = hidden ? '🙈 Ocultar dados' : '👁 Mostrar dados'
+}
+
+async function renderAssets() {
+  const byAsset = {}
+  for (const t of allTrades) {
+    if (!byAsset[t.base_asset]) byAsset[t.base_asset] = []
+    byAsset[t.base_asset].push(t)
+  }
+
+  await fetchPrices(Object.keys(byAsset))
+  PRICE_CACHE['BTC'] = currentBtcPrice || PRICE_CACHE['BTC']
+
+  const grid = document.getElementById('assets-grid')
+  grid.innerHTML = ''
+
+  // Botão de mostrar/ocultar moedas pequenas
+  let hiddenCount = 0
+
+  for (const [asset, trades] of Object.entries(byAsset)) {
+    const sorted = [...trades].sort((a,b) => new Date(a.traded_at) - new Date(b.traded_at))
+    let qty = 0, cost = 0, realized = 0
+    const quoteCurrencies = new Set()
+    for (const t of sorted) {
+      quoteCurrencies.add(t.quote_asset)
+      const q = parseFloat(t.quantity), total = parseFloat(t.total)
+      if (t.side === 'BUY') { cost += total; qty += q }
+      else {
+        const avg = qty > 0 ? cost / qty : 0
+        realized += total - avg * q
+        qty = Math.max(0, qty - q)
+        cost = qty * avg
+      }
+    }
+
+    // QUANTIDADE: usa o saldo real da Binance quando disponível
+    const realQty = realBalances[asset]
+    const displayQty = (realQty !== undefined) ? realQty : qty
+    const isReal = (realQty !== undefined)
+
+    const priceUsdt = PRICE_CACHE[asset] || 0
+    const valueUsdt = displayQty * priceUsdt
+
+    // Filtro de moedas < $1: oculta se valor atual (qty × preço) for menor que $1
+    const isSmall = priceUsdt > 0 && valueUsdt < 1
+    if (hideSmall && isSmall) { hiddenCount++; continue }
+
+    const avg = qty > 0 ? cost / qty : 0
+    const quoteLabel = [...quoteCurrencies][0] || ''
+
+    const div = document.createElement('div')
+    div.className = 'asset-card'
+    div.innerHTML = `
+      <h4>${assetIcon(asset)} ${asset}
+        ${priceUsdt > 0 ? `<span style="font-size:12px;color:var(--muted);font-weight:400">$${fmtUsd(priceUsdt)}</span>` : ''}
+      </h4>
+      <div class="asset-row"><span class="label">Quantidade ${isReal ? '✓' : ''}</span><span>${fmt(displayQty,8)}</span></div>
+      ${priceUsdt > 0 && displayQty > 0 ? `<div class="asset-row"><span class="label">Valor atual</span><span>$ ${fmtUsd(valueUsdt)}</span></div>` : ''}
+      <div class="asset-row"><span class="label">Custo médio</span><span>${fmtK(avg)} ${quoteLabel}</span></div>
+      <div class="asset-row"><span class="label">P&L realizado</span><span class="${realized>=0?'green':'red'}">${realized>=0?'+':''}${fmtK(realized)}</span></div>
+      <div class="asset-row"><span class="label">Trades</span><span>${trades.length}</span></div>
+    `
+    grid.appendChild(div)
+  }
+
+  // Atualiza texto do botão de filtro
+  const btn = document.getElementById('btn-hide-small')
+  if (btn) btn.textContent = hideSmall
+    ? `👁 Mostrar moedas < $1 (${hiddenCount})`
+    : '🙈 Ocultar moedas < $1'
+}
+
+function assetIcon(a) {
+  const m = {BTC:'₿',ETH:'Ξ',SOL:'◎',BNB:'⬡',DOGE:'Ð',LTC:'Ł',ADA:'₳'}
+  return m[a] || '●'
+}
+
+// ---- TRADES TABLE ----
+function populatePairFilter() {
+  const pairs = [...new Set(allTrades.map(t => t.pair))].sort()
+  const sel = document.getElementById('filter-pair')
+  sel.innerHTML = '<option value="">Todos os pares</option>' + pairs.map(p => `<option>${p}</option>`).join('')
+}
+
+function filterTrades() {
+  const pair = document.getElementById('filter-pair').value
+  renderTradesTable(pair ? allTrades.filter(t => t.pair === pair) : allTrades)
+}
+
+function renderTradesTable(trades) {
+  const tbody = document.getElementById('trades-body')
+  tbody.innerHTML = ''
+  for (const t of trades) {
+    const tr = document.createElement('tr')
+    const dt = new Date(t.traded_at)
+    tr.innerHTML = `
+      <td>${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${t.pair}</td>
+      <td><span class="badge badge-${t.side.toLowerCase()}">${t.side}</span></td>
+      <td>${fmtK(t.price)}</td>
+      <td>${fmt(t.quantity,8)} ${t.base_asset}</td>
+      <td>${fmtK(t.total)} ${t.quote_asset}</td>
+      <td class="hide-mobile">${fmt(t.fee_amount,6)} ${t.fee_asset}</td>
+    `
+    tbody.appendChild(tr)
+  }
+  if (!trades.length) {
+    const tr = document.createElement('tr')
+    tr.innerHTML = '<td colspan="7" style="text-align:center;color:var(--muted);padding:30px">Nenhum trade encontrado. Importe seu CSV na aba Importar.</td>'
+    tbody.appendChild(tr)
+  }
+}
+
+// ---- CHARTS ----
+let currentInterval = 'all'
+let currentChartCoin = 'BTC'
+let mainChart = null
+let chartCandles = []   // velas OHLC da moeda atual
+let loadingMoreHistory = false
+
+// Marcadores estilo Binance: círculo com "B" (compra) ou "S" (venda), letra branca
+function makeTradeMarker(letter, color) {
+  const size = 20
+  const c = document.createElement('canvas')
+  c.width = size; c.height = size
+  const g = c.getContext('2d')
+  g.beginPath(); g.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2)
+  g.fillStyle = color; g.fill()
+  g.lineWidth = 1; g.strokeStyle = 'rgba(255,255,255,0.35)'; g.stroke()
+  g.fillStyle = '#fff'; g.font = 'bold 12px -apple-system, Segoe UI, sans-serif'
+  g.textAlign = 'center'; g.textBaseline = 'middle'
+  g.fillText(letter, size / 2, size / 2 + 0.5)
+  return c
+}
+const markerBuy  = makeTradeMarker('B', '#3fb950')
+const markerSell = makeTradeMarker('S', '#f85149')
+
+// Posição Y/X do crosshair (null = oculto)
+let crosshairY = null
+let crosshairX = null
+// Último preço em tempo real da moeda do gráfico
+let chartLivePrice = null
+
+const crosshairPlugin = {
+  id: 'crosshair',
+  afterDraw(chart) {
+    drawVerticalCrosshair(chart)
+
+    // Linha de preço em tempo real (sempre visível)
+    if (chartLivePrice !== null) {
+      const area = chart.chartArea
+      const { min, max } = chart.scales.y
+      if (chartLivePrice >= min && chartLivePrice <= max) {
+        const py = area.top + (max - chartLivePrice) / (max - min) * (area.bottom - area.top)
+        const ctx = chart.ctx
+        ctx.save()
+
+        ctx.setLineDash([4, 3])
+        ctx.lineWidth = 1
+        ctx.strokeStyle = 'rgba(88, 166, 255, 0.55)'
+        ctx.beginPath()
+        ctx.moveTo(area.left, py)
+        ctx.lineTo(area.right, py)
+        ctx.stroke()
+        ctx.setLineDash([])
+
+        const liveLabel = '$' + fmtUsd(chartLivePrice)
+        ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+        const pad = 5
+        const lw = ctx.measureText(liveLabel).width + pad * 2
+        const lh = 18
+        const lx = area.right - lw - 4
+
+        ctx.fillStyle = '#58a6ff'
+        ctx.beginPath()
+        ctx.roundRect(lx, py - lh / 2, lw, lh, 3)
+        ctx.fill()
+
+        ctx.fillStyle = '#0d1117'
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(liveLabel, lx + pad, py + 0.5)
+
+        ctx.restore()
+      }
+    }
+
+    if (crosshairY === null || measureConfirmed) return
+    const area = chart.chartArea
+    if (!area || crosshairY < area.top || crosshairY > area.bottom) return
+
+    // Interpolação manual: evita problemas de escala DPR do Chart.js interno
+    const { min, max } = chart.scales.y
+    const relY = (crosshairY - area.top) / (area.bottom - area.top)
+    const price = max + relY * (min - max)
+    const label = '$' + fmtUsd(price)
+
+    const ctx = chart.ctx
+    ctx.save()
+
+    // Linha horizontal tracejada
+    ctx.setLineDash([5, 4])
+    ctx.lineWidth = 1
+    ctx.strokeStyle = 'rgba(139, 148, 158, 0.7)'
+    ctx.beginPath()
+    ctx.moveTo(area.left, crosshairY)
+    ctx.lineTo(area.right, crosshairY)
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    // Etiqueta de preço na área do eixo Y (à esquerda)
+    ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+    const pad = 5
+    const lw = ctx.measureText(label).width + pad * 2
+    const lh = 18
+    const lx = area.left + 4
+
+    // Caixa com só contorno (hollow) — distingue do preço em tempo real que é sólido
+    ctx.strokeStyle = '#58a6ff'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.roundRect(lx, crosshairY - lh / 2, lw, lh, 3)
+    ctx.stroke()
+
+    ctx.fillStyle = '#58a6ff'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(label, lx + pad, crosshairY + 0.5)
+
+    ctx.restore()
+  },
+
+  // Esconde o tooltip do Chart.js quando o mouse está além do último candle
+  afterEvent(chart, args) {
+    if (args.event.type !== 'mousemove' || crosshairX === null) return
+    const ds = chart.data?.datasets?.[0]
+    const lastCandle = ds?.data?.[ds.data.length - 1]
+    if (!lastCandle?.x) return
+    const lastPx = chart.scales.x?.getPixelForValue(lastCandle.x)
+    if (lastPx != null && crosshairX > lastPx + 5) {
+      chart.tooltip.setActiveElements([], { x: 0, y: 0 })
+      args.changed = true
+    }
+  }
+}
+
+// Linha vertical pontilhada + label de data no eixo X
+function drawVerticalCrosshair(chart) {
+  if (!chart.tooltip) return
+  const activeEls = chart.tooltip.getActiveElements()
+  const area = chart.chartArea
+  if (!area) return
+
+  let vx = null
+  let useMouseX = false
+
+  if (crosshairX !== null) {
+    // Descobre o pixel X do último candle para detectar área futura
+    const ds = chart.data?.datasets?.[0]
+    const lastCandle = ds?.data?.[ds.data.length - 1]
+    const lastCandleTime = lastCandle?.x
+    const lastCandlePx = lastCandleTime != null
+      ? chart.scales.x.getPixelForValue(lastCandleTime)
+      : null
+
+    if (lastCandlePx !== null && crosshairX > lastCandlePx + 5) {
+      // Mouse está na área futura: ignora snap do Chart.js, segue o mouse
+      vx = crosshairX
+      useMouseX = true
+    } else if (activeEls.length) {
+      // Mouse está sobre dados: snap ao centro do candle
+      vx = activeEls[0].element.x
+    } else {
+      // Mouse entre candles sem elemento ativo
+      vx = crosshairX
+      useMouseX = true
+    }
+  } else if (activeEls.length) {
+    vx = activeEls[0].element.x
+  }
+
+  if (vx === null || vx < area.left || vx > area.right) return
+
+  const ctx = chart.ctx
+  ctx.save()
+  ctx.setLineDash([5, 4])
+  ctx.lineWidth = 1
+  ctx.strokeStyle = 'rgba(139, 148, 158, 0.7)'
+  ctx.beginPath()
+  ctx.moveTo(vx, area.top)
+  ctx.lineTo(vx, area.bottom)
+  ctx.stroke()
+  ctx.setLineDash([])
+
+  // Label de data no eixo X quando não há candle ativo sob o cursor
+  // Interpolação manual (igual ao Y) para evitar problemas de DPR do getValueForPixel
+  if (useMouseX && chart.scales.x) {
+    const { min, max } = chart.scales.x
+    const relX = (vx - area.left) / (area.right - area.left)
+    const timeMs = min + relX * (max - min)
+    const d = new Date(timeMs)
+    const dateLabel = d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+    ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+    const pad = 5
+    const lw = ctx.measureText(dateLabel).width + pad * 2
+    const lh = 18
+    const lx = Math.max(area.left, Math.min(area.right - lw, vx - lw / 2))
+    const ly = area.bottom + 4
+    ctx.strokeStyle = '#8b949e'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.roundRect(lx, ly, lw, lh, 3)
+    ctx.stroke()
+    ctx.fillStyle = '#8b949e'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(dateLabel, lx + pad, ly + lh / 2)
+  }
+
+  ctx.restore()
+}
+
+// ---- FERRAMENTA DE MEDIÇÃO ----
+let measureMode      = false
+let measureStart     = null    // {x, y, time, price}
+let measureEnd       = null
+let measureConfirmed = false   // true após 2º clique — medição travada
+let measureDragging  = false   // reservado (não usado no fluxo atual)
+
+function pxToChartValues(canvasX, canvasY) {
+  if (!mainChart) return null
+  const area = mainChart.chartArea
+  const xRel  = (canvasX - area.left) / (area.right - area.left)
+  const time  = mainChart.scales.x.min + xRel * (mainChart.scales.x.max - mainChart.scales.x.min)
+  const yRel  = (canvasY - area.top)  / (area.bottom - area.top)
+  const price = mainChart.scales.y.max + yRel * (mainChart.scales.y.min - mainChart.scales.y.max)
+  return { x: canvasX, y: canvasY, time, price }
+}
+
+function getKlineMs() {
+  const cfg = VIEW_CONFIG[currentInterval] || VIEW_CONFIG['all']
+  return { '15m': 900000, '1h': 3600000, '4h': 14400000, '3d': 259200000, '1d': 86400000 }[cfg.kline] || 86400000
+}
+
+function toggleMeasureMode(forceOff) {
+  measureMode      = forceOff === true ? false : !measureMode
+  measureStart     = null
+  measureEnd       = null
+  measureConfirmed = false
+  measureDragging  = false
+  const btn = document.getElementById('btn-measure')
+  if (btn) {
+    btn.style.borderColor = measureMode ? 'var(--accent)' : ''
+    btn.style.color       = measureMode ? 'var(--accent)' : ''
+  }
+  if (mainChart) {
+    // Ao desativar sempre restaura navegação; ao ativar mantém navegação
+    // até 2º ponto ser selecionado (desativa só durante a escolha)
+    const zp = mainChart.options.plugins.zoom
+    if (!measureMode) {
+      zp.pan.enabled = true
+      if (zp.zoom.pinch) zp.zoom.pinch.enabled = true
+      if (zp.zoom.wheel) zp.zoom.wheel.enabled = true
+    }
+    mainChart.update('none')
+  }
+}
+
+const measurePlugin = {
+  id: 'measure',
+  afterDraw(chart) {
+    if (!measureStart) return
+    const end  = measureEnd || measureStart
+    const area = chart.chartArea
+    const xSc  = chart.scales.x
+    const ySc  = chart.scales.y
+
+    // Recalcula pixels a partir dos dados — acompanha pan/zoom automaticamente
+    function toPixelX(time)  { return xSc.getPixelForValue(time) }
+    function toPixelY(price) {
+      return area.top + (ySc.max - price) / (ySc.max - ySc.min) * (area.bottom - area.top)
+    }
+
+    const x1 = Math.max(area.left,  Math.min(area.right,  toPixelX(measureStart.time)))
+    const x2 = Math.max(area.left,  Math.min(area.right,  toPixelX(end.time)))
+    const y1 = Math.max(area.top,   Math.min(area.bottom, toPixelY(measureStart.price)))
+    const y2 = Math.max(area.top,   Math.min(area.bottom, toPixelY(end.price)))
+    const rx = Math.min(x1, x2), ry = Math.min(y1, y2)
+    const rw = Math.abs(x2 - x1), rh = Math.abs(y2 - y1)
+
+    const p1   = measureStart.price
+    const p2   = end.price
+    const isUp = p2 >= p1
+    const col  = isUp ? '#3fb950' : '#f85149'
+    const pct  = ((p2 - p1) / p1) * 100
+    const diff = p2 - p1
+    const durMs = Math.abs(end.time - measureStart.time)
+    const kMs   = getKlineMs()
+    const nCnd  = Math.max(1, Math.round(durMs / kMs))
+    const hrs   = Math.floor(durMs / 3600000)
+    const days  = Math.floor(hrs / 24)
+    const durStr = days > 0 ? `${days}d ${hrs % 24}h` : `${hrs}h`
+
+    const ctx = chart.ctx
+    ctx.save()
+
+    // Retângulo de seleção
+    ctx.fillStyle   = isUp ? 'rgba(63,185,80,0.12)' : 'rgba(248,81,73,0.12)'
+    ctx.strokeStyle = col
+    ctx.lineWidth   = 1.5
+    ctx.setLineDash([5, 3])
+    ctx.fillRect(rx, ry, rw, rh)
+    ctx.strokeRect(rx, ry, rw, rh)
+    ctx.setLineDash([])
+
+    // Marcador no ponto inicial (modo botão sem end ainda)
+    if (!measureEnd) {
+      ctx.fillStyle = col
+      ctx.beginPath()
+      ctx.arc(x1, y1, 5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+      return
+    }
+
+    // Caixa de informações
+    const sign  = pct >= 0 ? '+' : ''
+    const lines = [
+      { text: `${sign}${pct.toFixed(2)}%`,        big: true },
+      { text: `${fmtUsd(p1)} → ${fmtUsd(p2)}` },
+      { text: `${diff >= 0 ? '+' : ''}${fmtUsd(Math.abs(diff))} USDT` },
+      { text: `${durStr} · ${nCnd} candle${nCnd !== 1 ? 's' : ''}` }
+    ]
+
+    const lineH = 18, pad = 10
+    ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+    let maxW = ctx.measureText(lines[0].text).width
+    ctx.font = '11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+    for (let i = 1; i < lines.length; i++) {
+      maxW = Math.max(maxW, ctx.measureText(lines[i].text).width)
+    }
+    const boxW = maxW + pad * 2
+    const boxH = lines.length * lineH + pad
+
+    // Canto superior-esquerdo se subiu, inferior-esquerdo se caiu
+    const bx = area.left + 4
+    const by = isUp ? area.top + 4 : area.bottom - boxH - 4
+
+    ctx.fillStyle   = 'rgba(13,17,23,0.93)'
+    ctx.strokeStyle = col
+    ctx.lineWidth   = 1.5
+    ctx.beginPath()
+    ctx.roundRect(bx, by, boxW, boxH, 6)
+    ctx.fill()
+    ctx.stroke()
+
+    ctx.textAlign    = 'left'
+    ctx.textBaseline = 'top'
+    lines.forEach((line, i) => {
+      ctx.font      = line.big
+        ? 'bold 14px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+        : '11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+      ctx.fillStyle = line.big ? col : '#e6edf3'
+      ctx.fillText(line.text, bx + pad, by + pad / 2 + i * lineH)
+    })
+
+    ctx.restore()
+  }
+}
+
+// Plugin que desenha as velas (candlestick) no canvas — robusto, sem dependência externa
+const candlePlugin = {
+  id: 'velas',
+  beforeDatasetsDraw(chart) {
+    const area = chart.chartArea
+    const x = chart.scales.x, y = chart.scales.y
+    if (!chartCandles.length || !area) return
+    // largura da vela pelo espaçamento entre candles
+    let w = 6
+    if (chartCandles.length > 1) {
+      const a = x.getPixelForValue(chartCandles[0].x)
+      const b = x.getPixelForValue(chartCandles[1].x)
+      w = Math.min(14, Math.max(1, Math.abs(b - a) * 0.7))
+    }
+    const ctx = chart.ctx
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top)
+    ctx.clip()
+    for (const c of chartCandles) {
+      const xc = x.getPixelForValue(c.x)
+      if (xc < area.left - 12 || xc > area.right + 12) continue
+      const up = c.c >= c.o
+      const col = up ? '#3fb950' : '#f85149'
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1
+      // pavio (máxima/mínima)
+      const yH = y.getPixelForValue(c.h), yL = y.getPixelForValue(c.l)
+      ctx.beginPath(); ctx.moveTo(xc, yH); ctx.lineTo(xc, yL); ctx.stroke()
+      // corpo (abertura/fechamento)
+      const yO = y.getPixelForValue(c.o), yC = y.getPixelForValue(c.c)
+      const top = Math.min(yO, yC), hgt = Math.max(1, Math.abs(yC - yO))
+      ctx.fillRect(xc - w / 2, top, w, hgt)
+    }
+    ctx.restore()
+  }
+}
+
+// Ajusta a escala de preço (Y) ao trecho de tempo (X) visível — igual TradingView
+// Escolhe um passo "redondo" (1, 2, 2.5, 5, 10 × 10ⁿ) para as linhas da escala
+function niceStep(range, target) {
+  if (range <= 0) return 1
+  const raw = range / target
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)))
+  const cands = [1, 2, 2.5, 5, 10].map(m => m * pow)
+  let best = cands[0], bestDiff = Infinity
+  for (const c of cands) {
+    const d = Math.abs(range / c - target)
+    if (d < bestDiff) { bestDiff = d; best = c }
+  }
+  return best
+}
+
+// Arredonda os limites do eixo Y para valores "bonitos" sem alterar a posição do pan
+function snapYTicks() {
+  if (!mainChart?.scales?.y) return
+  const { min, max } = mainChart.scales.y
+  const step = niceStep(max - min, 10)
+  mainChart.options.scales.y.min = Math.floor(min / step) * step
+  mainChart.options.scales.y.max = Math.ceil(max / step) * step
+  mainChart.options.scales.y.ticks.stepSize = step
+  mainChart.update('none')
+}
+
+function fitChartY() {
+  if (!mainChart || !mainChart.scales || !mainChart.scales.x) return
+  const xs = mainChart.scales.x
+  const vis = chartCandles.filter(c => c.x >= xs.min && c.x <= xs.max)
+  const src = vis.length ? vis : chartCandles
+  if (!src.length) return
+  const lo = Math.min(...src.map(c => c.l))
+  const hi = Math.max(...src.map(c => c.h))
+  const pad = (hi - lo) * 0.08 || hi * 0.05
+  const yMin = Math.max(0, lo - pad)
+  const yMax = hi + pad
+  // Linhas em valores redondos (para BTC cai em passos de ~10k)
+  const step = niceStep(yMax - yMin, 10)
+  mainChart.options.scales.y.min = Math.max(0, Math.floor(yMin / step) * step)
+  mainChart.options.scales.y.max = Math.ceil(yMax / step) * step
+  mainChart.options.scales.y.ticks.stepSize = step
+  mainChart.update('none')
+}
+
+// Esconde o tooltip e o crosshair (usado ao tirar o dedo da tela no celular)
+let tooltipClickShowing = false
+function hideChartTooltip() {
+  if (!mainChart) return
+  tooltipClickShowing = false
+  crosshairY = null
+  mainChart.setActiveElements([])
+  if (mainChart.tooltip) mainChart.tooltip.setActiveElements([], { x: 0, y: 0 })
+  mainChart.update('none')
+}
+
+// Posicionador: tooltip vai ao topo do gráfico se o candle está na metade inferior,
+// e ao rodapé se o candle está na metade superior — sempre fora da área de interesse
+Chart.Tooltip.positioners.chartEdge = function(elements, pos) {
+  if (!elements.length) return false
+  const area = this.chart.chartArea
+  // Se o candle está na metade inferior → tooltip vai ao topo (yAlign:'bottom' = caixa abaixo do ponto)
+  // Se o candle está na metade superior → tooltip vai ao rodapé (yAlign:'top' = caixa acima do ponto)
+  const goTop = pos.y >= (area.top + area.bottom) / 2
+  return {
+    x: Math.max(area.left, Math.min(area.right, pos.x)),
+    y: goTop ? area.top + 4 : area.bottom - 4,
+    yAlign: goTop ? 'bottom' : 'top'
+  }
+}
+
+// Moedas que têm par USDT na Binance (excluir quote currencies e pares exóticos)
+const CHART_SKIP = ['USDT','BUSD','BRL']
+
+function buildCoinSelector() {
+  const coins = [...new Set(allTrades.map(t => t.base_asset))]
+    .filter(c => !CHART_SKIP.includes(c))
+    .sort()
+  const sel = document.getElementById('coin-select')
+  if (!coins.includes(currentChartCoin) && coins.length) currentChartCoin = coins[0]
+  sel.innerHTML = coins.map(c => `<option value="${c}"${c === currentChartCoin ? ' selected' : ''}>${c}</option>`).join('')
+}
+
+function setChartCoin(coin) {
+  currentChartCoin = coin
+  loadChart()
+  renderChartOrders()
+  startChartWS(coin)
+}
+
+// view → { binanceInterval, windowMs ou null para ALL }
+const VIEW_CONFIG = {
+  'all': { kline: '1d',  windowMs: null },
+  '5y':  { kline: '3d',  windowMs: 5  * 365 * 86400000 },
+  '1y':  { kline: '1d',  windowMs: 365 * 86400000 },
+  '1m':  { kline: '4h',  windowMs: 30  * 86400000 },
+  '1w':  { kline: '1h',  windowMs: 7   * 86400000 },
+  '24h': { kline: '15m', windowMs: 86400000 }
+}
+
+function setChartInterval(view, btn) {
+  currentInterval = view
+  document.querySelectorAll('.btn-interval').forEach(b => b.style.borderColor = '')
+  if (btn) btn.style.borderColor = 'var(--accent)'
+  loadChart()
+}
+
+function resetZoom() {
+  if (mainChart) { mainChart.resetZoom(); setTimeout(fitChartY, 30) }
+}
+
+let tradesVisible = true
+function toggleTrades() {
+  tradesVisible = !tradesVisible
+  if (mainChart) {
+    mainChart.data.datasets[1].hidden = !tradesVisible
+    mainChart.data.datasets[2].hidden = !tradesVisible
+    mainChart.update('none')
+  }
+  const btn = document.getElementById('btn-trades')
+  if (!btn) return
+  const label = btn.querySelector('.ts-label')
+  if (tradesVisible) {
+    btn.classList.remove('ts-off')
+    if (label) label.textContent = 'ON'
+  } else {
+    btn.classList.add('ts-off')
+    if (label) label.textContent = 'OFF'
+  }
+}
+
+// Carrega candles históricos anteriores ao primeiro candle atual (chamado ao fazer pan para o passado)
+async function loadMoreHistory() {
+  if (loadingMoreHistory || !mainChart || !chartCandles.length) return
+  const HISTORY_START = new Date('2015-01-01').getTime()
+  if (chartCandles[0].x <= HISTORY_START) return
+
+  loadingMoreHistory = true
+  const symbol = currentChartCoin + 'USDT'
+  const cfg = VIEW_CONFIG[currentInterval] || VIEW_CONFIG['all']
+  const klineInterval = cfg.kline
+  const klineMs = { '15m': 900000, '1h': 3600000, '4h': 14400000, '3d': 259200000, '1d': 86400000, '1w': 604800000 }[klineInterval] || 86400000
+
+  const fetchEndTime = chartCandles[0].x - 1
+  const fetchStartTime = Math.max(HISTORY_START, fetchEndTime - 500 * klineMs)
+
+  try {
+    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${klineInterval}&startTime=${fetchStartTime}&endTime=${fetchEndTime}&limit=500`
+    const res = await fetch(url)
+    const batch = await res.json()
+    if (Array.isArray(batch) && batch.length > 0) {
+      const newCandles = batch.map(k => ({ x: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4] }))
+      chartCandles = [...newCandles, ...chartCandles]
+      mainChart.data.datasets[0].data = chartCandles.map(c => ({ x: c.x, y: c.c, o: c.o, h: c.h, l: c.l, c: c.c }))
+      mainChart.update('none')
+    }
+  } catch(e) {}
+
+  loadingMoreHistory = false
+}
+
+async function loadChart() {
+  tooltipClickShowing = false
+  // Reseta visibilidade das trades ao trocar moeda/intervalo
+  tradesVisible = true
+  const btnT = document.getElementById('btn-trades')
+  if (btnT) {
+    btnT.classList.remove('ts-off')
+    const lbl = btnT.querySelector('.ts-label')
+    if (lbl) lbl.textContent = 'ON'
+  }
+  const coin = currentChartCoin
+  const symbol = coin + 'USDT'
+
+  const _ct = document.getElementById('chart-title'); if (_ct) _ct.textContent = coin
+
+  const HISTORY_START = new Date('2015-01-01').getTime()
+  const coinAll = allTrades.filter(t => t.base_asset === coin)
+  const oldestTrade = coinAll.length
+    ? Math.min(...coinAll.map(t => new Date(t.traded_at).getTime()))
+    : Date.now() - 86400000 * 365
+
+  const cfg = VIEW_CONFIG[currentInterval] || VIEW_CONFIG['all']
+  const klineInterval = cfg.kline
+  const klineMs = { '15m': 900000, '1h': 3600000, '4h': 14400000, '3d': 259200000, '1d': 86400000, '1w': 604800000 }[klineInterval] || 86400000
+
+  const startTime = cfg.windowMs === null
+    ? Math.min(HISTORY_START, oldestTrade)
+    : Date.now() - cfg.windowMs
+
+  let klines = []
+  let cursor = startTime
+  while (cursor < Date.now()) {
+    try {
+      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${klineInterval}&startTime=${cursor}&limit=1000`
+      const res = await fetch(url)
+      const batch = await res.json()
+      if (!Array.isArray(batch) || batch.length === 0) break
+      klines.push(...batch)
+      cursor = batch[batch.length - 1][0] + klineMs
+      if (batch.length < 1000) break
+    } catch(e) { break }
+  }
+
+  const candles = klines.map(k => ({ x: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4] }))
+  chartCandles = candles
+  // janela visível inicial: mostra só o período selecionado mesmo que klines comecem antes
+  const xMin = cfg.windowMs !== null ? Date.now() - cfg.windowMs : undefined
+  const xMax = cfg.windowMs !== null ? Date.now() : undefined
+
+  // Trades da moeda selecionada
+  const coinTrades = allTrades
+    .filter(t => t.base_asset === coin)
+    .sort((a,b) => new Date(a.traded_at) - new Date(b.traded_at))
+
+  // Para trades cotados em BTC (ex: BNBBTC), converte para USDT pelo preço BTC da época
+  const tradePriceUsdt = t => {
+    if (t.quote_asset === 'BRL') {
+      // BTC/BRL: usa preço histórico BTC/USD direto
+      if (t.base_asset === 'BTC') return btcUsdAt(new Date(t.traded_at).getTime())
+      // Outros (ex: SHIB/BRL): converte preço BRL → USD pela taxa atual
+      return parseFloat(t.price) / usdtBrlRate
+    }
+    if (t.quote_asset === 'BTC') {
+      const btcPrice = btcUsdAt(new Date(t.traded_at).getTime())
+      return parseFloat(t.price) * btcPrice
+    }
+    return parseFloat(t.price)
+  }
+  const tradeTotalUsdt = t => {
+    if (t.quote_asset === 'BRL') return parseFloat(t.quantity) * tradePriceUsdt(t)
+    if (t.quote_asset === 'BTC') return parseFloat(t.quantity) * tradePriceUsdt(t)
+    return parseFloat(t.total)
+  }
+
+  // Cada ponto carrega metadados para o tooltip
+  const toPoint = t => ({
+    x: new Date(t.traded_at).getTime(),
+    y: tradePriceUsdt(t),
+    side: t.side,
+    pair: t.pair,
+    qty: parseFloat(t.quantity),
+    total: tradeTotalUsdt(t),
+    date: new Date(t.traded_at)
+  })
+
+  const buys  = coinTrades.filter(t => t.side === 'BUY').map(toPoint)
+  const sells = coinTrades.filter(t => t.side === 'SELL').map(toPoint)
+
+  const ctx = document.getElementById('chart-price').getContext('2d')
+  if (mainChart) mainChart.destroy()
+
+  mainChart = new Chart(ctx, {
+    plugins: [candlePlugin, crosshairPlugin, measurePlugin],
+    data: {
+      datasets: [
+        {
+          type: 'line',
+          label: coin + '/USDT',
+          data: candles.map(c => ({ x: c.x, y: c.c, o: c.o, h: c.h, l: c.l, c: c.c })),
+          borderColor: 'rgba(0,0,0,0)',
+          pointRadius: 0,
+          pointHitRadius: 6,
+          order: 3
+        },
+        {
+          type: 'scatter',
+          label: 'Compra',
+          data: buys,
+          pointStyle: markerBuy,
+          pointRadius: 10,
+          pointHoverRadius: 11,
+          pointHitRadius: 16,
+          order: 1
+        },
+        {
+          type: 'scatter',
+          label: 'Venda',
+          data: sells,
+          pointStyle: markerSell,
+          pointRadius: 10,
+          pointHoverRadius: 11,
+          pointHitRadius: 16,
+          order: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+      onClick: (event, elements) => {
+        if (measureMode || !mainChart) return
+        if (tooltipClickShowing) {
+          tooltipClickShowing = false
+          mainChart.setActiveElements([])
+          mainChart.tooltip && mainChart.tooltip.setActiveElements([], { x: 0, y: 0 })
+          mainChart.update('none')
+        } else if (elements.length) {
+          tooltipClickShowing = true
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#e6edf3', usePointStyle: true } },
+        tooltip: {
+          position: 'chartEdge',
+          padding: 10,
+          callbacks: {
+            title: items => {
+              const p = items[0]?.raw
+              if (p?.date) return p.date.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' })
+              if (p?.x) return new Date(p.x).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' })
+              return ''
+            },
+            label: ctx => {
+              const p = ctx.raw
+              if (p && p.o !== undefined && p.side === undefined) {
+                return [
+                  'Abertura: $' + fmtUsd(p.o),
+                  'Máxima:  $' + fmtUsd(p.h),
+                  'Mínima:  $' + fmtUsd(p.l),
+                  'Fecham.: $' + fmtUsd(p.c)
+                ]
+              }
+              const tipo = p.side === 'BUY' ? '🟢 COMPRA' : '🔴 VENDA'
+              return [
+                tipo + '  (' + p.pair + ')',
+                'Preço: $' + fmtUsd(p.y),
+                'Quantidade: ' + fmt(p.qty, 8),
+                'Total: $' + fmtK(p.total)
+              ]
+            }
+          }
+        },
+        zoom: {
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x', onZoomComplete: fitChartY },
+          pan: {
+            enabled: true,
+            mode: 'xy',
+            onPanComplete({ chart }) {
+              // Arredonda eixo Y para labels limpos após pan vertical
+              snapYTicks()
+              // Carrega mais histórico se o usuário se aproximou do início dos dados
+              const visibleMin = chart.scales.x.min
+              const firstTime = chartCandles[0]?.x
+              if (firstTime != null) {
+                const viewRange = chart.scales.x.max - chart.scales.x.min
+                if (visibleMin < firstTime + viewRange * 0.2) loadMoreHistory()
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { tooltipFormat: 'dd/MM/yy HH:mm' },
+          min: xMin,
+          max: xMax,
+          ticks: { color: '#8b949e', maxTicksLimit: 7, font: { size: 10 } },
+          grid: { color: '#21262d' }
+        },
+        y: {
+          ticks: { color: '#8b949e', maxTicksLimit: 20, padding: 2, font: { size: 10 }, callback: (v, i, ticks) => '$' + abbrNum(v, ticks && ticks.length > 1 ? Math.abs(ticks[1].value - ticks[0].value) : null) },
+          grid: { color: '#21262d' }
+        }
+      }
+    }
+  })
+  fitChartY()
+  startChartKlineWS(coin, klineInterval)
+}
+
+function initCharts() {
+  loadChart()
+  try { startChartWS(currentChartCoin) } catch(e) { console.error('chartWs', e) }
+  const cv = document.getElementById('chart-price')
+  if (cv && !cv._touchBound) {
+    cv._touchBound = true
+    cv.addEventListener('touchcancel', hideChartTooltip)
+    // touchend: fecha o tooltip no 2º toque (preventDefault evita o click sintético
+    // que reabriria o tooltip antes do onClick do chart processar)
+    cv.addEventListener('touchend', e => {
+      if (!mainChart || measureMode) return
+      if (tooltipClickShowing) {
+        e.preventDefault()
+        hideChartTooltip()
+      }
+    }, { passive: false })
+  }
+  if (cv && !cv._crosshairBound) {
+    cv._crosshairBound = true
+
+    // Crosshair + prévia de medição (mouse)
+    cv.addEventListener('mousemove', e => {
+      const rect = cv.getBoundingClientRect()
+      const cx = e.clientX - rect.left
+      const cy = e.clientY - rect.top
+      crosshairY = cy
+      crosshairX = cx
+      // Prévia ao vivo entre 1º e 2º ponto (antes de confirmar)
+      if (measureMode && measureStart && !measureConfirmed) {
+        measureEnd = pxToChartValues(cx, cy)
+      }
+      if (mainChart) mainChart.update('none')
+    })
+
+    cv.addEventListener('mouseleave', () => {
+      crosshairY = null
+      crosshairX = null
+      // Só limpa a prévia se a medição ainda não foi confirmada
+      if (measureMode && measureStart && !measureConfirmed) measureEnd = null
+      if (mainChart) mainChart.update('none')
+    })
+
+    // Crosshair touch
+    cv.addEventListener('touchmove', e => {
+      if (e.touches.length > 0) {
+        const rect = cv.getBoundingClientRect()
+        crosshairY = e.touches[0].clientY - rect.top
+        if (mainChart) mainChart.update('none')
+      }
+    }, { passive: true })
+
+    // Clique/toque: 1º = ponto inicial, 2º = trava medição
+    // Após travar, apenas o botão 📏 limpa a medição
+    cv.addEventListener('click', e => {
+      if (!measureMode || !mainChart || measureConfirmed) return
+      const rect = cv.getBoundingClientRect()
+      const pt   = pxToChartValues(e.clientX - rect.left, e.clientY - rect.top)
+
+      if (!measureStart) {
+        // 1º ponto: bloqueia navegação até o 2º ponto ser definido
+        measureStart = pt
+        measureEnd   = null
+        const zp = mainChart.options.plugins.zoom
+        zp.pan.enabled = false
+        if (zp.zoom.pinch) zp.zoom.pinch.enabled = false
+        if (zp.zoom.wheel) zp.zoom.wheel.enabled = false
+      } else {
+        // 2º ponto: trava medição e libera navegação
+        measureEnd       = pt
+        measureConfirmed = true
+        const zp = mainChart.options.plugins.zoom
+        zp.pan.enabled = true
+        if (zp.zoom.pinch) zp.zoom.pinch.enabled = true
+        if (zp.zoom.wheel) zp.zoom.wheel.enabled = true
+      }
+      mainChart.update('none')
+    })
+
+    // Escape fecha medição
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && measureStart) toggleMeasureMode(true)
+    })
+  }
+}
+function renderTradeChart() {}
+
+// ---- BINANCE WEBSOCKET (preço em tempo real) ----
+let wsReconnectTimer = null
+function startBinanceWS() {
+  if (ws) { try { ws.close() } catch {} }
+  if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null }
+
+  // @ticker envia P (variação % 24h) pronto; miniTicker não
+  ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker')
+
+  // Binance exige resposta ao ping a cada 3 min ou derruba a conexão
+  ws.onmessage = e => {
+    // Mensagem binária = ping frame da Binance → responde com pong
+    if (e.data instanceof Blob || e.data instanceof ArrayBuffer) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(e.data)
+      return
+    }
+    let d
+    try { d = JSON.parse(e.data) } catch { return }
+    if (!d.c) return  // mensagem de controle sem preço
+
+    currentBtcPrice = parseFloat(d.c)
+    // P vem no @ticker; fallback calcula por (c-o)/o
+    let change = parseFloat(d.P)
+    if (isNaN(change)) {
+      const open = parseFloat(d.o)
+      change = open > 0 ? ((currentBtcPrice - open) / open) * 100 : 0
+    }
+
+    document.getElementById('btc-price-header').textContent = '$' + fmtK(currentBtcPrice)
+    const chEl = document.getElementById('btc-change')
+    chEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + '%'
+    chEl.className = change >= 0 ? 'green' : 'red'
+
+    const now = new Date().toLocaleTimeString('pt-BR')
+    priceHistory.push({ t: now, v: currentBtcPrice })
+    if (priceHistory.length > 100) priceHistory.shift()
+
+    renderSummary()
+  }
+
+  ws.onerror = () => {} // silencia erros antes do onclose
+  ws.onclose = () => {
+    wsReconnectTimer = setTimeout(startBinanceWS, 5000)
+  }
+
+  // Reconexão proativa antes do limite de 24h da Binance (a cada 23h)
+  setTimeout(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) startBinanceWS()
+  }, 23 * 60 * 60 * 1000)
+}
+
+// ---- WEBSOCKET DO GRÁFICO (preço da moeda selecionada, em tempo real) ----
+let chartWs = null
+let chartWsTimer = null
+let chartWsCoin = null
+function startChartWS(coin) {
+  coin = coin || currentChartCoin
+  chartWsCoin = coin
+  if (chartWs) { try { chartWs.onclose = null; chartWs.close() } catch {} }
+  if (chartWsTimer) { clearTimeout(chartWsTimer); chartWsTimer = null }
+
+  chartLivePrice = null   // zera linha enquanto conecta nova moeda
+
+  const symEl = document.getElementById('chart-live-sym')
+  const valEl = document.getElementById('chart-live-val')
+  const chgEl = document.getElementById('chart-live-chg')
+  if (symEl) symEl.textContent = coin
+  if (valEl) valEl.textContent = '—'
+  if (chgEl) chgEl.textContent = ''
+
+  const stream = coin.toLowerCase() + 'usdt@ticker'
+  chartWs = new WebSocket('wss://stream.binance.com:9443/ws/' + stream)
+
+  chartWs.onmessage = e => {
+    // Frame binário = ping da Binance → responde com pong
+    if (e.data instanceof Blob || e.data instanceof ArrayBuffer) {
+      if (chartWs.readyState === WebSocket.OPEN) chartWs.send(e.data)
+      return
+    }
+    let d
+    try { d = JSON.parse(e.data) } catch { return }
+    if (!d.c) return
+    // Ignora mensagens de uma moeda anterior (troca de gráfico em andamento)
+    if (chartWsCoin !== coin) return
+
+    const price = parseFloat(d.c)
+    let change = parseFloat(d.P)
+    if (isNaN(change)) {
+      const open = parseFloat(d.o)
+      change = open > 0 ? ((price - open) / open) * 100 : 0
+    }
+    if (valEl) valEl.textContent = '$' + fmtUsd(price)
+    if (chgEl) {
+      chgEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + '%'
+      chgEl.className = 'cl-chg ' + (change >= 0 ? 'green' : 'red')
+    }
+
+    // Atualiza linha de preço em tempo real no gráfico
+    chartLivePrice = price
+    if (mainChart) mainChart.update('none')
+  }
+
+  chartWs.onerror = () => {}
+  chartWs.onclose = () => {
+    // Só reconecta se ainda for a moeda atual
+    if (chartWsCoin === coin) chartWsTimer = setTimeout(() => startChartWS(coin), 5000)
+  }
+}
+
+// ---- WEBSOCKET DE VELAS EM TEMPO REAL ----
+let chartKlineWs = null
+let chartKlineWsTimer = null
+let chartKlineWsCoin = null
+let chartKlineWsInterval = null
+
+function startChartKlineWS(coin, interval) {
+  if (chartKlineWs) { try { chartKlineWs.onclose = null; chartKlineWs.close() } catch {} }
+  if (chartKlineWsTimer) { clearTimeout(chartKlineWsTimer); chartKlineWsTimer = null }
+  chartKlineWsCoin = coin
+  chartKlineWsInterval = interval
+
+  chartKlineWs = new WebSocket('wss://stream.binance.com:9443/ws/' + coin.toLowerCase() + 'usdt@kline_' + interval)
+
+  chartKlineWs.onmessage = e => {
+    if (e.data instanceof Blob || e.data instanceof ArrayBuffer) {
+      if (chartKlineWs.readyState === WebSocket.OPEN) chartKlineWs.send(e.data)
+      return
+    }
+    let msg
+    try { msg = JSON.parse(e.data) } catch { return }
+    if (!msg.k) return
+    if (chartKlineWsCoin !== coin) return
+    if (!mainChart || !chartCandles.length) return
+
+    const k = msg.k
+    const t = k.t  // timestamp de abertura da vela
+    const o = parseFloat(k.o), h = parseFloat(k.h), l = parseFloat(k.l), c = parseFloat(k.c)
+    const last = chartCandles[chartCandles.length - 1]
+
+    if (last.x === t) {
+      // Atualiza vela atual (ainda aberta)
+      last.h = h; last.l = l; last.c = c
+      const pt = mainChart.data.datasets[0].data[mainChart.data.datasets[0].data.length - 1]
+      if (pt && pt.x === t) { pt.y = c; pt.c = c; pt.h = h; pt.l = l }
+    } else if (t > last.x) {
+      // Nova vela iniciada
+      chartCandles.push({ x: t, o, h, l, c })
+      mainChart.data.datasets[0].data.push({ x: t, y: c, o, h, l, c })
+    } else {
+      return
+    }
+
+    // Reajusta escala Y se o preço saiu dos limites visíveis
+    const yMin = mainChart.options.scales.y.min
+    const yMax = mainChart.options.scales.y.max
+    if (c < yMin || c > yMax || h > yMax || l < yMin) {
+      fitChartY()
+    } else {
+      mainChart.update('none')
+    }
+  }
+
+  chartKlineWs.onerror = () => {}
+  chartKlineWs.onclose = () => {
+    if (chartKlineWsCoin === coin && chartKlineWsInterval === interval)
+      chartKlineWsTimer = setTimeout(() => startChartKlineWS(coin, interval), 5000)
+  }
+}
+
+// ---- CSV IMPORT ----
+const dropZone = document.getElementById('drop-zone')
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over') })
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'))
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); importCSV(e.dataTransfer.files[0]) })
+
+function log(msg, color='var(--muted)') {
+  const el = document.getElementById('import-log')
+  el.innerHTML += `<span style="color:${color}">${msg}\n</span>`
+  el.scrollTop = el.scrollHeight
+}
+
+async function importCSV(file) {
+  if (!file) return
+  document.getElementById('import-log').innerHTML = ''
+  log(`📂 Lendo ${file.name}...`)
+  const text = await file.text()
+  const lines = text.split('\n').filter(l => l.trim())
+  const header = lines[0]
+  if (!header.includes('Tempo') && !header.includes('Time')) { log('❌ CSV inválido. Esperado: export da Binance.', 'var(--red)'); return }
+
+  const rows = []
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',')
+    if (cols.length < 7) continue
+    const [dateRaw, pair, side, priceRaw, execRaw, totalRaw, feeRaw] = cols
+
+    const dateStr = dateRaw.trim()
+    // Formato: YY-MM-DD HH:MM:SS  →  20YY-MM-DD
+    const traded_at = '20' + dateStr.replace(/^(\d{2})-(\d{2})-(\d{2}) (\d{2}:\d{2}:\d{2})$/, '$1-$2-$3T$4') + '-03:00'
+
+    const pairClean = pair.trim()
+    const sideClean = side.trim().toUpperCase()
+    const price     = parseFloat(priceRaw)
+
+    // "0.01129BTC" → qty=0.01129, asset=BTC
+    const execM = execRaw.trim().match(/^([\d.]+)([A-Z]+)$/)
+    const totalM = totalRaw.trim().match(/^([\d.]+)([A-Z]+)$/)
+    const feeM   = feeRaw.trim().match(/^([\d.]+)([A-Z]+)$/)
+    if (!execM || !totalM) continue
+
+    const quantity    = parseFloat(execM[1])
+    const base_asset  = execM[2]
+    const total       = parseFloat(totalM[1])
+    const quote_asset = totalM[2]
+    const fee_amount  = feeM ? parseFloat(feeM[1]) : 0
+    const fee_asset   = feeM ? feeM[2] : ''
+
+    rows.push({ user_id: currentUser.id, traded_at, pair: pairClean, base_asset, quote_asset, side: sideClean, price, quantity, total, fee_amount, fee_asset })
+  }
+
+  log(`📊 ${rows.length} trades encontrados. Inserindo no Supabase...`)
+
+  let inserted = 0, skipped = 0
+  const CHUNK = 50
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK)
+    const { error, count } = await db.from('binance_trades').upsert(chunk, { onConflict: 'user_id,traded_at,pair,side,price,quantity', ignoreDuplicates: true })
+    if (error) { log(`⚠️ Erro no lote ${i}: ${error.message}`, 'var(--yellow)') }
+    else { inserted += chunk.length }
+  }
+
+  log(`✅ Importação concluída! ${inserted} trades processados.`, 'var(--green)')
+  log('🔄 Recarregando dados...')
+  await loadTrades()
+  log('✅ Dashboard atualizado!', 'var(--green)')
+}
+
+// ---- UTILS ----
+function set(id, val) { document.getElementById(id).textContent = val }
+function fmt(n, decimals=2) { return parseFloat(n || 0).toFixed(decimals) }
+function fmtK(n) {
+  n = parseFloat(n || 0)
+  if (Math.abs(n) >= 1000) return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return n.toFixed(2)
+}
+function fmtUsd(n) {
+  n = parseFloat(n || 0)
+  const a = Math.abs(n)
+  if (a === 0) return '0.00'
+  if (a >= 1000) return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  if (a >= 1) return n.toFixed(2)
+  if (a >= 0.01) return n.toFixed(4)
+  return n.toFixed(8).replace(/\.?0+$/, '')
+}
+// Abreviação para a escala lateral do gráfico: 60000 -> "60k", 61500 -> "61,5k", 1200000 -> "1,2M"
+// `step` (opcional) é o passo entre linhas da escala; define quantas casas decimais
+// mostrar para não repetir o mesmo rótulo em linhas próximas ao dar zoom.
+function abbrNum(v, step) {
+  const a = Math.abs(v)
+  if (a >= 1e6) return fmtScaled(v / 1e6, step != null ? step / 1e6 : null, 1) + 'M'
+  if (a >= 1e3) return fmtScaled(v / 1e3, step != null ? step / 1e3 : null, 1) + 'k'
+  if (a >= 1)   return v.toFixed(0)
+  if (a > 0)    return v.toPrecision(2)
+  return '0'
+}
+// Formata um número já escalado (em k/M) usando as casas decimais derivadas do passo,
+// remove zeros à direita e usa vírgula como separador decimal (pt-BR). Ex.: 61,5 / 62
+function fmtScaled(value, scaledStep, fallbackDec) {
+  let dec = fallbackDec
+  if (scaledStep != null && isFinite(scaledStep) && scaledStep > 0) {
+    const s = scaledStep.toString()
+    const i = s.indexOf('.')
+    dec = i < 0 ? 0 : (s.length - i - 1)
+  }
+  let out = value.toFixed(dec)
+  if (out.indexOf('.') >= 0) out = out.replace(/\.?0+$/, '')
+  return out.replace('.', ',')
+}
+
+// Sessão inicial — onAuthStateChange já cuida disso, não precisa duplicar
+</script>
+</body>
+</html>
