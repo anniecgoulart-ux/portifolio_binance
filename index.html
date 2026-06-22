@@ -1927,12 +1927,14 @@ async function importCSV(file) {
     const [dateRaw, pair, side, priceRaw, execRaw, totalRaw, feeRaw] = cols
 
     const dateStr = dateRaw.trim()
-    // Suporte a YYYY-MM-DD HH:MM:SS (export atual da Binance) e YY-MM-DD HH:MM:SS (legado)
+    // Parseia data componente a componente para evitar problemas de timezone em diferentes browsers
     let traded_at
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
-      traded_at = dateStr.replace(' ', 'T') + '-03:00'
+    const dm = dateStr.match(/^(\d{2,4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/)
+    if (dm) {
+      const yr = dm[1].length === 2 ? 2000 + +dm[1] : +dm[1]
+      traded_at = new Date(Date.UTC(yr, +dm[2]-1, +dm[3], +dm[4], +dm[5], +dm[6])).toISOString()
     } else {
-      traded_at = '20' + dateStr.replace(/^(\d{2})-(\d{2})-(\d{2}) (\d{2}:\d{2}:\d{2})$/, '$1-$2-$3T$4') + '-03:00'
+      traded_at = new Date(dateStr).toISOString()
     }
 
     const pairClean = pair.trim()
