@@ -254,15 +254,15 @@ tr:hover td { background: #1c2128; }
     <div class="chart-wrap">
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <select id="coin-select" class="btn-sm" onchange="setChartCoin(this.value)" style="width:80px;padding:4px 6px;font-size:11px"></select>
-        <button class="btn-sm btn-interval" id="btn-all"  onclick="setChartInterval('all',  this)" style="border-color:var(--accent)">ALL</button>
+        <button class="btn-sm btn-interval" id="btn-all"  onclick="setChartInterval('all',  this)">ALL</button>
         <button class="btn-sm btn-interval" id="btn-5y"   onclick="setChartInterval('5y',   this)">5A</button>
         <button class="btn-sm btn-interval" id="btn-1y"   onclick="setChartInterval('1y',   this)">1A</button>
-        <button class="btn-sm btn-interval" id="btn-1m"   onclick="setChartInterval('1m',   this)">1M</button>
+        <button class="btn-sm btn-interval" id="btn-1m"   onclick="setChartInterval('1m',   this)" style="border-color:var(--accent)">1M</button>
         <button class="btn-sm btn-interval" id="btn-1w"   onclick="setChartInterval('1w',   this)">1S</button>
         <button class="btn-sm btn-interval" id="btn-24h"  onclick="setChartInterval('24h',  this)">24H</button>
         <button class="btn-sm" id="btn-measure" onclick="toggleMeasureMode()" title="Medir (Shift+Arrastar no desktop)">📏</button>
-        <button class="toggle-switch" id="btn-trades" onclick="toggleTrades()" title="Mostrar/ocultar trades">
-          <span class="ts-knob"></span><span class="ts-label">ON</span>
+        <button class="toggle-switch ts-off" id="btn-trades" onclick="toggleTrades()" title="Mostrar/ocultar trades">
+          <span class="ts-knob"></span><span class="ts-label">OFF</span>
         </button>
         <span class="chart-live" id="chart-live" style="margin-left:auto">
           <span class="dot-live"></span>
@@ -877,7 +877,7 @@ function renderTradesTable(trades) {
 }
 
 // ---- CHARTS ----
-let currentInterval = 'all'
+let currentInterval = '1m'
 let currentChartCoin = 'BTC'
 let mainChart = null
 let chartCandles = []   // velas OHLC da moeda atual
@@ -1381,7 +1381,7 @@ function resetZoom() {
   if (mainChart) { mainChart.resetZoom(); setTimeout(fitChartY, 30) }
 }
 
-let tradesVisible = true
+let tradesVisible = false
 function toggleTrades() {
   tradesVisible = !tradesVisible
   if (mainChart) {
@@ -1433,14 +1433,6 @@ async function loadMoreHistory() {
 
 async function loadChart() {
   tooltipClickShowing = false
-  // Reseta visibilidade das trades ao trocar moeda/intervalo
-  tradesVisible = true
-  const btnT = document.getElementById('btn-trades')
-  if (btnT) {
-    btnT.classList.remove('ts-off')
-    const lbl = btnT.querySelector('.ts-label')
-    if (lbl) lbl.textContent = 'ON'
-  }
   const coin = currentChartCoin
   const symbol = coin + 'USDT'
 
@@ -1539,6 +1531,7 @@ async function loadChart() {
           type: 'scatter',
           label: 'Compra',
           data: buys,
+          hidden: !tradesVisible,
           pointStyle: markerBuy,
           pointRadius: 10,
           pointHoverRadius: 11,
@@ -1549,6 +1542,7 @@ async function loadChart() {
           type: 'scatter',
           label: 'Venda',
           data: sells,
+          hidden: !tradesVisible,
           pointStyle: markerSell,
           pointRadius: 10,
           pointHoverRadius: 11,
